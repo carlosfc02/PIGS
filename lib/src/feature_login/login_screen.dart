@@ -75,6 +75,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white, // button background
+                              foregroundColor: const Color(0xFFEA0000), // text/icon color
+                              side: const BorderSide(color: Color(0xFFEA0000)), // red border
+                              //padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
                             onPressed: () {
                               if (_formKey.currentState!.validate()) {
                                 // Handle login logic
