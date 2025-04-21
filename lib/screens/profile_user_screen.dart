@@ -1,6 +1,7 @@
 // lib/screens/profile_screen.dart
 
 import 'package:flutter/material.dart';
+import '../widgets/BottomNavBar.dart';
 
 class ProfileScreen extends StatelessWidget {
   // Ejemplo de datos de eventos; en la app real vendrán del backend
@@ -117,6 +118,7 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
       ),
+      bottomNavigationBar: BottomNavBar(currentIndex: 2),
     );
   }
 
