@@ -11,11 +11,11 @@ class ProfileScreen extends StatelessWidget {
       'title': 'Festival 1',
     },
     {
-      'image': 'assets/images/dj_background.jpg',
+      'image': 'assets/images/background_register.jpg',
       'title': 'Festival 2',
     },
     {
-      'image': 'assets/images/festival3.jpg',
+      'image': 'assets/images/dj_background.jpg',
       'title': 'Festival 3',
     },
   ];
@@ -141,7 +141,6 @@ class ProfileScreen extends StatelessWidget {
   );
 }
 
-/// Widget reutilizable para representar un evento
 class EventCard extends StatelessWidget {
   final String imageAsset;
   final String title;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:ravents/screens/event_detail_page.dart';
 import 'package:ravents/screens/home_page.dart';
 import 'package:ravents/screens/login_screen.dart';
 import 'package:ravents/screens/profile_user_screen.dart';

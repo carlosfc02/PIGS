@@ -36,7 +36,6 @@ class BottomNavBar extends StatelessWidget {
         BottomNavigationBarItem(icon: Icon(Icons.person),  label: 'Profile'),
       ],
       onTap: (index) {
-        if (index == currentIndex) return;               // si ya estás en esa pestaña, nada
         final route = _routes[index];
         Navigator.pushReplacementNamed(context, route);  // navega a la ruta fija
       },
