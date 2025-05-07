@@ -1,7 +1,5 @@
-// lib/screens/login_screen.dart
-
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../services/login_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,6 +12,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey            = GlobalKey<FormState>();
   final _emailController    = TextEditingController();
   final _passwordController = TextEditingController();
+  final _loginService       = LoginService();
 
   bool _isLoading     = false;
   String? _errorMessage;
@@ -33,25 +32,22 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading    = true;
     });
 
-    try {
-      // Intenta autenticar con email y contraseña
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+    final error = await _loginService.signIn(
+      email:    _emailController.text,
+      password: _passwordController.text,
+    );
 
-      // Si el usuario se ha autenticado correctamente, navega al perfil
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/profile');
-    } on FirebaseAuthException catch (e) {
-      // Muestra el mensaje de error de Firebase
-      setState(() => _errorMessage = e.message);
-    } catch (e) {
-      // Cualquier otro error
-      setState(() => _errorMessage = e.toString());
-    } finally {
-      setState(() => _isLoading = false);
+    if (error != null) {
+      setState(() {
+        _errorMessage = error;
+        _isLoading    = false;
+      });
+      return;
     }
+
+    // Login OK: navega al perfil
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/profile');
   }
 
   @override
@@ -63,7 +59,6 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // Fondo reutilizado del register
           Positioned.fill(
             child: Image.asset(
               'assets/images/background_register.jpg',
@@ -89,7 +84,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Logo
                         Image.asset(
                           'assets/images/appLogo2.png',
                           width: w * 0.35,
@@ -99,16 +93,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         // Email
                         TextFormField(
                           controller: _emailController,
-                          decoration: const InputDecoration(labelText: 'Email'),
-                          validator: (v) =>
-                          v == null || v.isEmpty ? 'Please enter your email' : null,
+                          decoration:
+                          const InputDecoration(labelText: 'Email'),
+                          validator: (v) => v == null || v.isEmpty
+                              ? 'Please enter your email'
+                              : null,
                         ),
                         const SizedBox(height: 8),
 
                         // Password
                         TextFormField(
                           controller: _passwordController,
-                          decoration: const InputDecoration(labelText: 'Password'),
+                          decoration:
+                          const InputDecoration(labelText: 'Password'),
                           obscureText: true,
                           validator: (v) => v == null || v.isEmpty
                               ? 'Please enter your password'
@@ -125,15 +122,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: 12),
                         ],
 
-                        // Botón de Login
+                        // Login button
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: const Color(0xFFEA0000),
-                              side: const BorderSide(color: Color(0xFFEA0000)),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side:
+                              const BorderSide(color: Color(0xFFEA0000)),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 14),
                             ),
                             onPressed: _isLoading ? null : _login,
                             child: _isLoading
@@ -151,26 +150,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 16),
 
-                        // Enlace para registro
+                        // Link to register
                         TextButton(
                           onPressed: () {
-                            Navigator.pushReplacementNamed(context, '/register');
+                            Navigator.pushReplacementNamed(
+                                context, '/register');
                           },
-                          child: TextButton(
-                            onPressed: () {
-                              // Navega a la ruta '/register'
-                              Navigator.pushReplacementNamed(context, '/register');
-                              // Si quieres mantener la pila y poder volver atrás:
-                              // Navigator.pushNamed(context, '/register');
-                            },
-                            child: const Text(
-                              'New user? Create Account',
-                              style: TextStyle(
-                                color: Colors.black54,
-                                decoration: TextDecoration.underline, // opcional: subrayado
-                              ),
-                              textAlign: TextAlign.center,
+                          child: const Text(
+                            'New user? Create Account',
+                            style: TextStyle(
+                              color: Colors.black54,
+                              decoration: TextDecoration.underline,
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                       ],

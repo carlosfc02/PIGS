@@ -14,6 +14,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey                = GlobalKey<FormState>();
   final _nameController         = TextEditingController();
   final _surnameController      = TextEditingController();
+  final _usernameController      = TextEditingController();
   final _emailController        = TextEditingController();
   final _passwordController     = TextEditingController();
   final _repeatPasswordController = TextEditingController();
@@ -27,6 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     _nameController.dispose();
     _surnameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _repeatPasswordController.dispose();
@@ -44,6 +46,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final error = await _authService.registerUser(
       name: _nameController.text.trim(),
       surname: _surnameController.text.trim(),
+      username: _usernameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
     );
@@ -118,6 +121,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           validator: (value) =>
                           value == null || value.isEmpty
                               ? 'Please enter your surname'
+                              : null,
+                        ),
+                        const SizedBox(height: 8),
+
+                        // username
+                        TextFormField(
+                          controller: _usernameController,
+                          decoration: const InputDecoration(labelText: 'Username'),
+                          validator: (value) =>
+                          value == null || value.isEmpty
+                              ? 'Please enter your username'
                               : null,
                         ),
                         const SizedBox(height: 8),

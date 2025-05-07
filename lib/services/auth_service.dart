@@ -12,7 +12,7 @@ class AuthService {
     required String name,
     required String surname,
     required String email,
-    required String password,
+    required String password, required String username,
   }) async {
     try {
       // 1) Registro en Firebase Auth
@@ -27,6 +27,7 @@ class AuthService {
       await _fs.collection('users').doc(uid).set({
         'name': name,
         'surname': surname,
+        'username': username,
         'email': email,
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -40,5 +41,10 @@ class AuthService {
     } catch (e) {
       return 'Error inesperado: $e';
     }
+  }
+
+  /// Cierra la sesión del usuario actual.
+  Future<void> signOut() async {
+    await _auth.signOut();
   }
 }
