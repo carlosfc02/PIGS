@@ -1,27 +1,29 @@
+// lib/screens/profile_screen.dart
+
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
 import '../widgets/BottomNavBar.dart';
 
-class ProfileScreen extends StatelessWidget {
-  ProfileScreen({super.key});
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
 
-  final AuthService _authService       = AuthService();
-  final ProfileService _profileService = ProfileService();
+class _ProfileScreenState extends State<ProfileScreen> {
+  final _authService    = AuthService();
+  final _profileService = ProfileService();
+  final _picker         = ImagePicker();
 
+  // Datos de ejemplo para eventos…
   final List<Map<String, String>> events = [
-    {
-      'image': 'assets/images/dj_background.jpg',
-      'title': 'Festival 1',
-    },
-    {
-      'image': 'assets/images/background_register.jpg',
-      'title': 'Festival 2',
-    },
-    {
-      'image': 'assets/images/dj_background.jpg',
-      'title': 'Festival 3',
-    },
+    { 'image': 'assets/images/dj_background.jpg',      'title': 'Festival 1' },
+    { 'image': 'assets/images/background_register.jpg','title': 'Festival 2' },
+    { 'image': 'assets/images/dj_background.jpg',      'title': 'Festival 3' },
   ];
 
   @override
@@ -29,32 +31,55 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: FutureBuilder<Map<String, dynamic>?>(
-          future: _profileService.fetchUserProfile(),
+        child: StreamBuilder<Map<String, dynamic>?>(
+          stream: _profileService.userProfileStream(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-
-            final data = snapshot.data;
-            // Si existe el campo 'username' lo usamos, si no un fallback genérico:
-            final username = data != null && data.containsKey('username')
-                ? data['username'] as String
-                : 'Usuario';
+            final data     = snapshot.data ?? {};
+            final username = data['username'] as String? ?? 'Usuario';
+            final photoUrl = data['photoUrl'] as String?;
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // --- Header: avatar, username, follows, settings
+                // --- Header
                 Padding(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 16),
                   child: Row(
                     children: [
-                      const CircleAvatar(
-                        radius: 64,
-                        backgroundImage:
-                        AssetImage('assets/images/artist1.jpg'),
+                      // Avatar con botón para cambiarla
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 64,
+                            backgroundImage: photoUrl != null
+                                ? NetworkImage(photoUrl)
+                                : const AssetImage('assets/images/artist1.jpg')
+                            as ImageProvider,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _onChangeProfileImage,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.grey[800],
+                                ),
+                                padding: const EdgeInsets.all(6),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -78,17 +103,16 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
 
-                      // Menú de ajustes
+                      // Menú de ajustes / logout
                       PopupMenuButton<String>(
-                        icon: const Icon(Icons.settings, color: Colors.white),
+                        icon: const Icon(Icons.settings,
+                            color: Colors.white),
                         onSelected: (value) async {
                           if (value == 'logout') {
                             await _authService.signOut();
-                            if (context.mounted) {
+                            if (mounted) {
                               Navigator.pushReplacementNamed(
-                                context,
-                                '/login',
-                              );
+                                  context, '/login');
                             }
                           }
                         },
@@ -103,14 +127,14 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
 
-                // --- Sección: Artists @user follows
+                // --- Artistas seguidos
                 const SizedBox(height: 24),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
                     "Artists @$username follows",
-                    style:
-                    TextStyle(color: Colors.grey[300], fontSize: 20),
+                    style: TextStyle(
+                        color: Colors.grey[300], fontSize: 20),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -131,19 +155,18 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
 
-                // --- Sección: Events of interest
+                // --- Eventos de interés
                 const SizedBox(height: 24),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
                     "Events of interest",
-                    style:
-                    TextStyle(color: Colors.grey[300], fontSize: 20),
+                    style: TextStyle(
+                        color: Colors.grey[300], fontSize: 20),
                   ),
                 ),
                 const SizedBox(height: 8),
 
-                // --- Lista vertical de eventos
                 Expanded(
                   child: ListView.separated(
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -164,7 +187,8 @@ class ProfileScreen extends StatelessWidget {
           },
         ),
       ),
-      bottomNavigationBar: const BottomNavBar(currentIndex: 2),
+      bottomNavigationBar:
+      const BottomNavBar(currentIndex: 2),
     );
   }
 
@@ -174,15 +198,35 @@ class ProfileScreen extends StatelessWidget {
   );
 
   Widget moreArtistButton() => GestureDetector(
-    onTap: () {
-      // Acción de “ver más”
-    },
+    onTap: () {},
     child: CircleAvatar(
       radius: 26,
       backgroundColor: Colors.grey[800],
       child: const Icon(Icons.add, size: 40, color: Colors.white),
     ),
   );
+
+  Future<void> _onChangeProfileImage() async {
+    final XFile? picked =
+    await _picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+
+    final file = File(picked.path);
+    try {
+      await _profileService.updateProfileImage(file);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Foto de perfil actualizada')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
 }
 
 class EventCard extends StatelessWidget {
@@ -198,9 +242,11 @@ class EventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding:
+      const EdgeInsets.symmetric(horizontal: 20),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius:
+        BorderRadius.circular(12),
         child: Stack(
           children: [
             Image.asset(

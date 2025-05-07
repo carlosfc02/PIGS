@@ -4,6 +4,7 @@ import 'package:ravents/screens/event_detail_page.dart';
 import 'package:ravents/screens/home_page.dart';
 import 'package:ravents/screens/login_screen.dart';
 import 'package:ravents/screens/profile_user_screen.dart';
+import 'package:ravents/screens/register_company_screen.dart';
 import 'package:ravents/screens/register_screen.dart';
 import 'firebase_options.dart';
 
@@ -37,6 +38,7 @@ class MyApp extends StatelessWidget {
         '/profile': (_) => ProfileScreen(),
         '/register': (_) => RegisterScreen(),
         '/login': (_) => LoginScreen(),
+        '/register_company': (_) => const RegisterCompanyScreen(),
       },
     );
   }

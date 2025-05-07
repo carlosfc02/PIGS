@@ -210,6 +210,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 : const Text('Register'),
                           ),
                         ),
+
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushReplacementNamed(
+                                context, '/register_company');
+                          },
+                          child: const Text(
+                            'You are a company? Create Company Account',
+                            style: TextStyle(
+                              color: Colors.black54,
+                              decoration: TextDecoration.underline,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
                       ],
                     ),
                   ),
