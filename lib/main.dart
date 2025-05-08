@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:ravents/screens/company_home_screen.dart';
+import 'package:ravents/screens/create_event_screen.dart';
 import 'package:ravents/screens/event_detail_page.dart';
 import 'package:ravents/screens/home_page.dart';
 import 'package:ravents/screens/login_screen.dart';
@@ -39,6 +41,8 @@ class MyApp extends StatelessWidget {
         '/register': (_) => RegisterScreen(),
         '/login': (_) => LoginScreen(),
         '/register_company': (_) => const RegisterCompanyScreen(),
+        '/create_event': (_) => const CreateEventScreen(),
+        '/company_home': (_) => const CompanyHomeScreen(),
       },
     );
   }

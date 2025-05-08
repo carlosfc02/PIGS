@@ -1,54 +1,60 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../services/login_service.dart';
-import '../models/auth_result.dart';
+import '../services/company_auth_service.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterCompanyScreen extends StatefulWidget {
+  const RegisterCompanyScreen({super.key});
+
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterCompanyScreen> createState() => _RegisterCompanyScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterCompanyScreenState extends State<RegisterCompanyScreen> {
   final _formKey      = GlobalKey<FormState>();
+  final _nameCtrl     = TextEditingController();
+  final _descCtrl     = TextEditingController();
   final _emailCtrl    = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  final _loginService = LoginService();
+  final _repeatCtrl   = TextEditingController();
 
-  bool _isLoading = false;
-  String? _errorMsg;
+  final _service      = CompanyAuthService();
+
+  bool _isLoading     = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
+    _nameCtrl.dispose();
+    _descCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
+    _repeatCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _onLogin() async {
+  Future<void> _onRegisterPressed() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() {
-      _isLoading = true;
-      _errorMsg  = null;
+      _isLoading    = true;
+      _errorMessage = null;
     });
 
-    try {
-      final result = await _loginService.signIn(
-        email: _emailCtrl.text,
-        password: _passwordCtrl.text,
-      );
+    final error = await _service.registerCompany(
+      companyName: _nameCtrl.text,
+      description: _descCtrl.text,
+      email:       _emailCtrl.text,
+      password:    _passwordCtrl.text,
+    );
+
+    if (error != null) {
+      setState(() {
+        _errorMessage = error;
+        _isLoading    = false;
+      });
+    } else {
+      // Registro OK: navega al dashboard de empresa
       if (!mounted) return;
-      if (result.role == Role.company) {
-        Navigator.pushReplacementNamed(context, '/company_home');
-      } else {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    } on FirebaseAuthException catch (e) {
-      setState(() => _errorMsg = e.message);
-    } catch (e) {
-      setState(() => _errorMsg = e.toString());
-    } finally {
-      setState(() => _isLoading = false);
+      Navigator.pushReplacementNamed(context, '/create_event');
     }
   }
 
@@ -72,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(
                   horizontal: w * 0.08,
-                  vertical: h * 0.05,
+                  vertical:   h * 0.05,
                 ),
                 child: Container(
                   width: double.infinity,
@@ -92,37 +98,71 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 16),
 
+                        // Nombre de empresa
+                        TextFormField(
+                          controller: _nameCtrl,
+                          decoration: const InputDecoration(labelText: 'Company Name'),
+                          validator: (v) => v == null || v.isEmpty
+                              ? 'Please enter the company name'
+                              : null,
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Descripción
+                        TextFormField(
+                          controller: _descCtrl,
+                          decoration: const InputDecoration(labelText: 'Description'),
+                          maxLines: 2,
+                          validator: (v) => v == null || v.isEmpty
+                              ? 'Please enter a description'
+                              : null,
+                        ),
+                        const SizedBox(height: 8),
+
                         // Email
                         TextFormField(
                           controller: _emailCtrl,
-                          decoration:
-                          const InputDecoration(labelText: 'Email'),
-                          validator: (v) =>
-                          v == null || v.isEmpty ? 'Please enter your email' : null,
+                          decoration: const InputDecoration(labelText: 'Email'),
+                          validator: (v) => v == null || v.isEmpty
+                              ? 'Please enter your email'
+                              : null,
                         ),
                         const SizedBox(height: 8),
 
                         // Password
                         TextFormField(
                           controller: _passwordCtrl,
-                          decoration:
-                          const InputDecoration(labelText: 'Password'),
+                          decoration: const InputDecoration(labelText: 'Password'),
                           obscureText: true,
-                          validator: (v) =>
-                          v == null || v.isEmpty ? 'Please enter your password' : null,
+                          validator: (v) => v == null || v.isEmpty
+                              ? 'Please enter a password'
+                              : null,
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Repeat Password
+                        TextFormField(
+                          controller: _repeatCtrl,
+                          decoration: const InputDecoration(labelText: 'Repeat Password'),
+                          obscureText: true,
+                          validator: (v) {
+                            if (v == null || v.isEmpty) return 'Please repeat your password';
+                            if (v != _passwordCtrl.text) return 'Passwords do not match';
+                            return null;
+                          },
                         ),
                         const SizedBox(height: 16),
 
                         // Error message
-                        if (_errorMsg != null) ...[
+                        if (_errorMessage != null) ...[
                           Text(
-                            _errorMsg!,
+                            _errorMessage!,
                             style: const TextStyle(color: Colors.red),
                           ),
                           const SizedBox(height: 12),
                         ],
 
-                        // Login button
+                        // Botón de registro
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -132,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               side: const BorderSide(color: Color(0xFFEA0000)),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
-                            onPressed: _isLoading ? null : _onLogin,
+                            onPressed: _isLoading ? null : _onRegisterPressed,
                             child: _isLoading
                                 ? const SizedBox(
                               height: 16,
@@ -142,23 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 color: Color(0xFFEA0000),
                               ),
                             )
-                                : const Text('Login'),
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Link to register
-                        TextButton(
-                          onPressed: () =>
-                              Navigator.pushReplacementNamed(context, '/register'),
-                          child: const Text(
-                            'New user? Create Account',
-                            style: TextStyle(
-                              color: Colors.black54,
-                              decoration: TextDecoration.underline,
-                            ),
-                            textAlign: TextAlign.center,
+                                : const Text('Register Company'),
                           ),
                         ),
                       ],
