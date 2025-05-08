@@ -66,7 +66,8 @@ class HomePage extends StatelessWidget {
                               title:    e.title,
                               imageUrl: e.imageUrl,
                               dateTime: e.date,
-                              location: '', // si quieres, añade campo en Firestore
+                              location: '',
+                              eventId: e.id,
                             ),
                           ),
                         );

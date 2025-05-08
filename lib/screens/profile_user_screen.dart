@@ -3,9 +3,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
+import '../services/interest_service.dart';
 import '../widgets/BottomNavBar.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -15,16 +16,10 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _authService    = AuthService();
-  final _profileService = ProfileService();
-  final _picker         = ImagePicker();
-
-  // Datos de ejemplo para eventos…
-  final List<Map<String, String>> events = [
-    { 'image': 'assets/images/dj_background.jpg',      'title': 'Festival 1' },
-    { 'image': 'assets/images/background_register.jpg','title': 'Festival 2' },
-    { 'image': 'assets/images/dj_background.jpg',      'title': 'Festival 3' },
-  ];
+  final _authService      = AuthService();
+  final _profileService   = ProfileService();
+  final _interestService  = InterestService();
+  final _picker           = ImagePicker();
 
   @override
   Widget build(BuildContext context) {
@@ -46,11 +41,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 // --- Header
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   child: Row(
                     children: [
-                      // Avatar con botón para cambiarla
                       Stack(
                         children: [
                           CircleAvatar(
@@ -102,17 +95,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
                       ),
-
-                      // Menú de ajustes / logout
                       PopupMenuButton<String>(
-                        icon: const Icon(Icons.settings,
-                            color: Colors.white),
+                        icon: const Icon(Icons.settings, color: Colors.white),
                         onSelected: (value) async {
                           if (value == 'logout') {
                             await _authService.signOut();
                             if (mounted) {
-                              Navigator.pushReplacementNamed(
-                                  context, '/login');
+                              Navigator.pushReplacementNamed(context, '/login');
                             }
                           }
                         },
@@ -127,14 +116,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
 
-                // --- Artistas seguidos
+                // --- Artistas seguidos (sin cambios) ---
                 const SizedBox(height: 24),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
                     "Artists @$username follows",
-                    style: TextStyle(
-                        color: Colors.grey[300], fontSize: 20),
+                    style: TextStyle(color: Colors.grey[300], fontSize: 20),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -155,29 +143,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
 
-                // --- Eventos de interés
+                // --- Eventos de interés dinámicos ---
                 const SizedBox(height: 24),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
                     "Events of interest",
-                    style: TextStyle(
-                        color: Colors.grey[300], fontSize: 20),
+                    style: TextStyle(color: Colors.grey[300], fontSize: 20),
                   ),
                 ),
                 const SizedBox(height: 8),
-
                 Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    itemCount: events.length,
-                    separatorBuilder: (_, __) =>
-                    const SizedBox(height: 16),
-                    itemBuilder: (context, index) {
-                      final event = events[index];
-                      return EventCard(
-                        imageAsset: event['image']!,
-                        title: event['title']!,
+                  child: StreamBuilder<List<String>>(
+                    stream: _interestService.interestedIdsStream(),
+                    builder: (context, snapIds) {
+                      if (snapIds.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final ids = snapIds.data ?? [];
+                      if (ids.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'No tienes eventos favoritos aún.',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        );
+                      }
+                      // Cargar datos de esos eventos
+                      return FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                        future: FirebaseFirestore.instance
+                            .collection('events')
+                            .where(FieldPath.documentId, whereIn: ids)
+                            .get(),
+                        builder: (context, snapEvents) {
+                          if (snapEvents.connectionState == ConnectionState.waiting) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+                          if (snapEvents.hasError) {
+                            return Center(
+                              child: Text(
+                                'Error cargando eventos: ${snapEvents.error}',
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            );
+                          }
+                          final docs = snapEvents.data!.docs;
+                          return ListView.separated(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            itemCount: docs.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 16),
+                            itemBuilder: (context, idx) {
+                              final d = docs[idx].data();
+                              return _InterestEventCard(
+                                imageUrl: d['imageUrl'] as String,
+                                title:    d['title']    as String,
+                              );
+                            },
+                          );
+                        },
                       );
                     },
                   ),
@@ -187,8 +210,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           },
         ),
       ),
-      bottomNavigationBar:
-      const BottomNavBar(currentIndex: 2),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 2),
     );
   }
 
@@ -207,10 +229,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   );
 
   Future<void> _onChangeProfileImage() async {
-    final XFile? picked =
-    await _picker.pickImage(source: ImageSource.gallery);
+    final picked = await _picker.pickImage(source: ImageSource.gallery);
     if (picked == null) return;
-
     final file = File(picked.path);
     try {
       await _profileService.updateProfileImage(file);
@@ -229,28 +249,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class EventCard extends StatelessWidget {
-  final String imageAsset;
+class _InterestEventCard extends StatelessWidget {
+  final String imageUrl;
   final String title;
-
-  const EventCard({
-    super.key,
-    required this.imageAsset,
-    required this.title,
-  });
+  const _InterestEventCard({required this.imageUrl, required this.title});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-      const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: ClipRRect(
-        borderRadius:
-        BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12),
         child: Stack(
           children: [
-            Image.asset(
-              imageAsset,
+            Image.network(
+              imageUrl,
               width: double.infinity,
               height: 180,
               fit: BoxFit.cover,

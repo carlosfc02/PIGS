@@ -1,22 +1,60 @@
-// lib/screens/event_detail_page.dart
-
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../services/interest_service.dart';
 import '../widgets/BottomNavBar.dart';
 
-class EventDetailPage extends StatelessWidget {
-  final String imageUrl;
-  final String title;
+class EventDetailPage extends StatefulWidget {
+  final String   eventId;
+  final String   imageUrl;
+  final String   title;
   final DateTime dateTime;
-  final String location;
+  final String   location;
 
   const EventDetailPage({
     Key? key,
+    required this.eventId,
     required this.imageUrl,
     required this.title,
     required this.dateTime,
     required this.location,
   }) : super(key: key);
+
+  @override
+  State<EventDetailPage> createState() => _EventDetailPageState();
+}
+
+class _EventDetailPageState extends State<EventDetailPage> {
+  final _interestService = InterestService();
+  bool _isFav = false;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavState();
+  }
+
+  Future<void> _loadFavState() async {
+    final fav = await _interestService.isInterested(widget.eventId);
+    setState(() {
+      _isFav = fav;
+      _loading = false;
+    });
+  }
+
+  Future<void> _toggleFav() async {
+    setState(() { _loading = true; });
+    if (_isFav) {
+      await _interestService.removeInterest(widget.eventId);
+    } else {
+      await _interestService.addInterest(widget.eventId);
+    }
+    setState(() {
+      _isFav = !_isFav;
+      _loading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +70,7 @@ class EventDetailPage extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8.0),
                   child: Image.network(
-                    imageUrl,
+                    widget.imageUrl,
                     width: double.infinity,
                     height: 250,
                     fit: BoxFit.cover,
@@ -42,10 +80,17 @@ class EventDetailPage extends StatelessWidget {
                   right: 16,
                   top: 16,
                   child: IconButton(
-                    icon: const Icon(Icons.favorite_border, size: 28, color: Colors.white),
-                    onPressed: () {
-                      // TODO: lógica de "favorito"
-                    },
+                    icon: _loading
+                        ? SizedBox(
+                      width: 28, height: 28,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red),
+                    )
+                        : Icon(
+                      _isFav ? Icons.favorite : Icons.favorite_border,
+                      size: 28,
+                      color: _isFav ? Colors.red : Colors.white,
+                    ),
+                    onPressed: _loading ? null : _toggleFav,
                   ),
                 ),
               ],
@@ -61,7 +106,7 @@ class EventDetailPage extends StatelessWidget {
                 children: [
                   // Título del evento
                   Text(
-                    title,
+                    widget.title,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -73,7 +118,7 @@ class EventDetailPage extends StatelessWidget {
 
                   // Fecha y hora
                   Text(
-                    DateFormat('EEE d MMM y, HH:mm').format(dateTime),
+                    DateFormat('EEE d MMM y, HH:mm').format(widget.dateTime),
                     style: const TextStyle(color: Colors.white70, fontSize: 16),
                   ),
 
@@ -86,7 +131,7 @@ class EventDetailPage extends StatelessWidget {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          location,
+                          widget.location,
                           style: const TextStyle(color: Colors.white70, fontSize: 16),
                         ),
                       ),
@@ -150,10 +195,8 @@ class EventDetailPage extends StatelessWidget {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Línea
                           Container(width: 2, height: 48, color: Colors.grey),
                           const SizedBox(width: 12),
-                          // Contenido
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,21 +227,20 @@ class EventDetailPage extends StatelessWidget {
                         ],
                       ),
 
+                      const SizedBox(height: 16),
+
                       // User Thread
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Línea
                           Container(width: 2, height: 80, color: Colors.grey),
                           const SizedBox(width: 12),
-                          // Avatar usuario
                           CircleAvatar(
                             radius: 14,
                             backgroundColor: Colors.grey[800],
                             child: const Icon(Icons.person, color: Colors.white, size: 16),
                           ),
                           const SizedBox(width: 12),
-                          // Contenido
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
