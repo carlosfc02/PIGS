@@ -38,4 +38,25 @@ class ProfileService {
       'photoUrl': url,
     });
   }
+
+  Stream<Map<String, dynamic>?> companyProfileStream() {
+    final user = _auth.currentUser;
+    if (user == null) return const Stream.empty();
+    return _fs
+        .collection('companies')
+        .doc(user.uid)
+        .snapshots()
+        .map((doc) => doc.data());
+  }
+
+  Future<void> updateCompanyProfileImage(File file) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('No user logged in');
+
+    final ref = _storage.ref().child('companies/${user.uid}/profile.jpg');
+    final snapshot = await ref.putFile(file);
+    final url = await snapshot.ref.getDownloadURL();
+    await _fs.collection('companies').doc(user.uid).update({'photoUrl': url});
+  }
+
 }

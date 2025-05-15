@@ -10,6 +10,7 @@ import '../widgets/BottomNavBar.dart';
 
 class EventDetailPage extends StatefulWidget {
   final String   eventId;
+  final String  description;
   final String   imageUrl;
   final String   title;
   final DateTime dateTime;
@@ -18,6 +19,7 @@ class EventDetailPage extends StatefulWidget {
   const EventDetailPage({
     Key? key,
     required this.eventId,
+    required this.description,
     required this.imageUrl,
     required this.title,
     required this.dateTime,
@@ -32,7 +34,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
   final _interestService = InterestService();
   final _threadService   = ThreadService();
 
-  bool _isFav  = false;
+  bool _isFav     = false;
   bool _loadingFav = true;
 
   @override
@@ -147,183 +149,243 @@ class _EventDetailPageState extends State<EventDetailPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       bottomNavigationBar: const BottomNavBar(currentIndex: 0),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 24),
-          children: [
-
-            // FOTO + FAVORITO
-            Stack(children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8.0),
-                child: Image.network(
-                  widget.imageUrl, width: double.infinity, height: 250, fit: BoxFit.cover,
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
+        children: [
+          const SizedBox(height: 50),
+          // === FOTO + FAVORITO ===
+          Stack(children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8.0),
+              child: Image.network(
+                widget.imageUrl,
+                width: double.infinity,
+                height: 250,
+                fit: BoxFit.cover,
+              ),
+            ),
+            Positioned(
+              right: 16, top: 16,
+              child: IconButton(
+                icon: _loadingFav
+                    ? SizedBox(
+                  width: 28, height: 28,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red),
+                )
+                    : Icon(
+                  _isFav ? Icons.favorite : Icons.favorite_border,
+                  size: 28,
+                  color: _isFav ? Colors.red : Colors.white,
                 ),
+                onPressed: _loadingFav ? null : _toggleFav,
               ),
-              Positioned(
-                right: 16, top: 16,
-                child: IconButton(
-                  icon: _loadingFav
-                      ? SizedBox(width:28, height:28, child: CircularProgressIndicator(strokeWidth:2, color:Colors.red))
-                      : Icon(_isFav ? Icons.favorite : Icons.favorite_border,
-                      size:28, color: _isFav ? Colors.red : Colors.white),
-                  onPressed: _loadingFav ? null : _toggleFav,
-                ),
-              ),
-            ]),
-
-            const SizedBox(height: 16),
-
-            // TÍTULO / FECHA / UBICACIÓN
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal:16.0),
-              child: Column(crossAxisAlignment:CrossAxisAlignment.start, children: [
-                Text(widget.title, style: const TextStyle(color:Colors.white,fontSize:24,fontWeight:FontWeight.bold)),
-                const SizedBox(height:8),
-                Text(DateFormat('EEE d MMM y, HH:mm').format(widget.dateTime),
-                    style: const TextStyle(color:Colors.white70,fontSize:16)),
-                const SizedBox(height:4),
-                Row(children: [
-                  const Icon(Icons.location_on,size:16,color:Colors.white70),
-                  const SizedBox(width:4),
-                  Expanded(child: Text(widget.location, style: const TextStyle(color:Colors.white70,fontSize:16))),
-                ]),
-                const SizedBox(height:24),
-              ]),
-            ),
-
-            // COMENTARIOS ESTÁTICOS
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal:16.0),
-              child: Text('Comments', style: TextStyle(color:Colors.white,fontSize:20,fontWeight:FontWeight.bold)),
-            ),
-            const SizedBox(height:8),
-            ...[
-              'Free Parking.',
-            ].map((c) => Padding(
-              padding: const EdgeInsets.only(bottom:12,left:16,right:16),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color:Colors.grey[900],borderRadius:BorderRadius.circular(8)),
-                child: Text(c, style: const TextStyle(color:Colors.white70,fontSize:14)),
-              ),
-            )),
-
-            const SizedBox(height:24),
-
-            // DISCUSSION HEADER + + BOTÓN
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal:16.0),
-              child: Row(children: [
-                const Expanded(child: Text('Discussion',
-                    style: TextStyle(color:Colors.white,fontSize:20,fontWeight:FontWeight.bold))),
-                IconButton(icon: const Icon(Icons.add,color:Colors.white),
-                    onPressed: _showAddThreadDialog),
-              ]),
-            ),
-            const SizedBox(height:8),
-
-            // PREVIEW MAIN THREAD
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal:16.0),
-              child: Row(crossAxisAlignment:CrossAxisAlignment.start, children: [
-                Container(width:2, height:48, color:Colors.grey),
-                const SizedBox(width:12),
-                Expanded(child: Column(crossAxisAlignment:CrossAxisAlignment.start, children: [
-                  const Text('Main Thread', style: TextStyle(color:Colors.white,fontSize:16,fontWeight:FontWeight.bold)),
-                  const SizedBox(height:4),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color:Colors.grey[900],borderRadius:BorderRadius.circular(4)),
-                    child: const Text('Here its some information of the organizer.', style:TextStyle(color:Colors.white70)),
-                  ),
-                ])),
-              ]),
-            ),
-
-            const SizedBox(height:16),
-
-            // HILOS + RESPUESTAS
-            StreamBuilder<List<Thread>>(
-              stream: _threadService.threadsStream(widget.eventId),
-              builder: (ctx, snap) {
-                if (snap.connectionState == ConnectionState.waiting) {
-                  return const Center(child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: CircularProgressIndicator(),
-                  ));
-                }
-                final threads = snap.data ?? [];
-                return ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal:16.0),
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: threads.length,
-                  separatorBuilder:(_,__)=> const Divider(color:Colors.grey),
-                  itemBuilder:(ctx,i){
-                    final t = threads[i];
-                    return _buildThreadWithReplies(t);
-                  },
-                );
-              },
-            ),
-
-            const SizedBox(height:24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildThreadWithReplies(Thread t) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // hilo principal
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: CircleAvatar(child: Text(t.authorName.isEmpty ? 'U' : t.authorName[0])),
-          title: Text(t.authorName, style: const TextStyle(color:Colors.white)),
-          subtitle: Text(t.content, style: const TextStyle(color:Colors.white70)),
-          trailing: Wrap(spacing:8, children:[
-            Text(DateFormat('HH:mm').format(t.createdAt),
-                style: const TextStyle(color:Colors.white54,fontSize:12)),
-            IconButton(
-              icon: const Icon(Icons.reply, color:Colors.white,size:20),
-              onPressed: ()=> _showAddReplyDialog(t.id),
             ),
           ]),
-        ),
 
-        // respuestas dinámicas
-        StreamBuilder<List<Reply>>(
-          stream: _threadService.repliesStream(widget.eventId, t.id),
-          builder:(ctx,snap){
-            if (snap.connectionState==ConnectionState.waiting) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(horizontal:32, vertical:8),
-                child: LinearProgressIndicator(),
-              );
-            }
-            final replies = snap.data ?? [];
-            return Padding(
-              padding: const EdgeInsets.only(left: 32.0),
-              child: Column(
-                children: replies.map((r){
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(radius:12,child: Text(r.authorName.isEmpty?'U':r.authorName[0], style: const TextStyle(fontSize:12))),
-                    title: Text(r.authorName, style: const TextStyle(color:Colors.white,fontSize:14)),
-                    subtitle: Text(r.content, style: const TextStyle(color:Colors.white70,fontSize:13)),
-                    trailing: Text(DateFormat('HH:mm').format(r.createdAt),
-                        style: const TextStyle(color:Colors.white54,fontSize:10)),
-                  );
-                }).toList(),
+          const SizedBox(height: 16),
+
+          // === TÍTULO / FECHA / UBICACIÓN ===
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(widget.title,
+                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
               ),
-            );
-          },
-        ),
-      ],
+              const SizedBox(height: 8),
+              Text(
+                DateFormat('EEE d MMM y, HH:mm').format(widget.dateTime),
+                style: const TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+              const SizedBox(height: 4),
+              Row(children: [
+                const Icon(Icons.location_on, size: 20, color: Colors.white70),
+                const SizedBox(width: 6),
+                Text(widget.location,
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+              ]),
+              const SizedBox(height: 24),
+            ]),
+          ),
+
+          // === COMENTARIOS ESTÁTICOS ===
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text('Description',
+              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...[widget.description].map((c) =>
+              Padding(
+                padding: const EdgeInsets.only(bottom:12,left:16,right:16),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(c, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                ),
+              ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // === DISCUSSION HEADER + BOTÓN ===
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(children: [
+              const Expanded(
+                child: Text('Discussion',
+                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+              IconButton(icon: const Icon(Icons.add, color: Colors.white),
+                onPressed: _showAddThreadDialog,
+              ),
+            ]),
+          ),
+          const SizedBox(height: 8),
+
+          // === MAIN THREAD DINÁMICO ===
+          StreamBuilder<String>(
+            stream: _threadService.mainThreadStream(widget.eventId),
+            builder: (context, snap) {
+              final content = snap.data ?? 'Loading main thread…';
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Container(width:2, height:48, color:Colors.grey),
+                  const SizedBox(width:12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Text('Main Thread',
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height:4),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[900],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(content,
+                          style: const TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                      ),
+                    ]),
+                  ),
+                ]),
+              );
+            },
+          ),
+
+          const SizedBox(height: 24),
+
+          // === SUB-HILOS + RESPUESTAS ===
+          StreamBuilder<List<Thread>>(
+            stream: _threadService.threadsStream(widget.eventId),
+            builder: (ctx, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const Center(child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                ));
+              }
+              // Excluimos el hilo con id "main", si existe:
+              final threads = (snap.data ?? [])
+                  .where((t) => t.id != 'main')
+                  .toList();
+
+              if (threads.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(horizontal:16.0),
+                  child: Text('No sub-threads yet',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                );
+              }
+
+              return ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal:16.0),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: threads.length,
+                separatorBuilder: (_, __) => const Divider(color: Colors.grey),
+                itemBuilder: (ctx, i) {
+                  final t = threads[i];
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Sub-hilo
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          child: Text(
+                            t.authorName.isEmpty ? 'U' : t.authorName[0],
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        title: Text(t.content,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        subtitle: Text(DateFormat('HH:mm').format(t.createdAt),
+                          style: const TextStyle(color: Colors.white54, fontSize:12),
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.reply, color: Colors.white, size:20),
+                          onPressed: () => _showAddReplyDialog(t.id),
+                        ),
+                      ),
+
+                      // Respuestas al sub-hilo
+                      StreamBuilder<List<Reply>>(
+                        stream: _threadService.repliesStream(widget.eventId, t.id),
+                        builder: (c2, snap2) {
+                          if (snap2.connectionState == ConnectionState.waiting) {
+                            return const SizedBox();
+                          }
+                          final replies = snap2.data ?? [];
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 32.0),
+                            child: Column(
+                              children: replies.map((r) {
+                                return ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: CircleAvatar(
+                                    radius: 12,
+                                    child: Text(
+                                      r.authorName.isEmpty ? 'U' : r.authorName[0],
+                                      style: const TextStyle(fontSize:12),
+                                    ),
+                                  ),
+                                  title: Text(r.authorName,
+                                    style: const TextStyle(color:Colors.white, fontSize:14),
+                                  ),
+                                  subtitle: Text(r.content,
+                                    style: const TextStyle(color:Colors.white70, fontSize:13),
+                                  ),
+                                  trailing: Text(DateFormat('HH:mm').format(r.createdAt),
+                                    style: const TextStyle(color:Colors.white54, fontSize:10),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 }

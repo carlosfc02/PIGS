@@ -6,6 +6,7 @@ class Event {
   final String description;
   final String imageUrl;
   final DateTime date;
+  final String location;
   final String companyId;
 
   Event({
@@ -14,6 +15,7 @@ class Event {
     required this.description,
     required this.imageUrl,
     required this.date,
+    required this.location,
     required this.companyId,
   });
 
@@ -25,6 +27,7 @@ class Event {
       description: data['description'] as String,
       imageUrl:    data['imageUrl'] as String,
       date:        (data['date'] as Timestamp).toDate(),
+      location: data['location'] as String,
       companyId:   data['companyId'] as String,
     );
   }

@@ -64,9 +64,10 @@ class HomePage extends StatelessWidget {
                           MaterialPageRoute(
                             builder: (_) => EventDetailPage(
                               title:    e.title,
+                              description: e.description,
                               imageUrl: e.imageUrl,
                               dateTime: e.date,
-                              location: '',
+                              location: e.location,
                               eventId: e.id,
                             ),
                           ),

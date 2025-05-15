@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:ravents/screens/company_home_screen.dart';
+import 'package:ravents/screens/company_profile_screen.dart';
 import 'package:ravents/screens/create_event_screen.dart';
-import 'package:ravents/screens/event_detail_page.dart';
 import 'package:ravents/screens/home_page.dart';
 import 'package:ravents/screens/login_screen.dart';
 import 'package:ravents/screens/profile_user_screen.dart';
 import 'package:ravents/screens/register_company_screen.dart';
 import 'package:ravents/screens/register_screen.dart';
+import 'package:ravents/screens/search_screen.dart';
 import 'firebase_options.dart';
 
 
@@ -36,13 +37,14 @@ class MyApp extends StatelessWidget {
 
       routes: {
         '/home': (_) => HomePage(),
-        // '/search: (_) => SearchScreen(),
+        '/search': (_) => SearchScreen(),
         '/profile': (_) => ProfileScreen(),
         '/register': (_) => RegisterScreen(),
         '/login': (_) => LoginScreen(),
         '/register_company': (_) => const RegisterCompanyScreen(),
         '/create_event': (_) => const CreateEventScreen(),
         '/company_home': (_) => const CompanyHomeScreen(),
+        '/company_profile': (_) => CompanyProfileScreen(),
       },
     );
   }

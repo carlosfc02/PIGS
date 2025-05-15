@@ -54,7 +54,7 @@ class _RegisterCompanyScreenState extends State<RegisterCompanyScreen> {
     } else {
       // Registro OK: navega al dashboard de empresa
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/create_event');
+      Navigator.pushReplacementNamed(context, '/company_home');
     }
   }
 
@@ -185,6 +185,21 @@ class _RegisterCompanyScreenState extends State<RegisterCompanyScreen> {
                                 : const Text('Register Company'),
                           ),
                         ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushReplacementNamed(
+                                context, '/login');
+                          },
+                          child: const Text(
+                            'You are registered, Log In',
+                            style: TextStyle(
+                              color: Colors.black54,
+                              decoration: TextDecoration.underline,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+
                       ],
                     ),
                   ),
