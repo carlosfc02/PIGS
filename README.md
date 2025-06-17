@@ -1,4 +1,4 @@
-# ravents
+# Ravents
 
 An app for events
 
